@@ -1,0 +1,82 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: workout
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-workout}
+      POSTGRES_DB: workout_tracker
+    volumes:
+      - workout_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U workout -d workout_tracker"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # labels:
+    #   - "traefik.enable=false"
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://workout:${DB_PASSWORD:-workout}@db:5432/workout_tracker
+      SECRET_KEY: ${SECRET_KEY}
+      OIDC_ISSUER_URL: ${OIDC_ISSUER_URL}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID}
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET}
+      OIDC_REDIRECT_URI: ${OIDC_REDIRECT_URI}
+      OLLAMA_URL: ${OLLAMA_URL:-http://10.10.10.55:11434}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:7b}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}
+      SCRAPER_CRON: ${SCRAPER_CRON:-0 5 * * *}
+      BASE_URL: ${BASE_URL:-http://localhost:8000}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    # labels:
+    #   - "traefik.enable=true"
+    #   - "traefik.http.routers.workout-api.rule=Host(`workout.local`) && PathPrefix(`/api`)"
+    #   - "traefik.http.routers.workout-api.entrypoints=websecure"
+    #   - "traefik.http.services.workout-api.loadbalancer.server.port=8000"
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:80/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    labels:
+      - traefik.enable=true
+      # Public HTTPS route
+      - traefik.http.routers.workout.rule=Host(`gym.blasbalg.me`)
+      - traefik.http.routers.workout.entrypoints=websecure
+      - traefik.http.routers.workout.tls=true
+      - traefik.http.routers.workout.tls.certresolver=letsencrypt
+      - traefik.http.services.workout.loadbalancer.server.port=80
+      # Local LAN route
+      - traefik.http.routers.workout-local.rule=Host(`gym.blasbalg.local`)
+      - traefik.http.routers.workout-local.entrypoints=web
+      - traefik.http.routers.workout-local.service=workout
+    networks:
+      - default
+      - homelab-network
+
+volumes:
+  workout_db:
+
+networks:
+  homelab-network:
+    name: docker_homelab-network
+    external: true

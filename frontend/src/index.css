@@ -1,0 +1,155 @@
+@import "tailwindcss";
+
+/* Use class-based dark mode (toggle adds/removes .dark on <html>) */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ------------------------------------------------------------------ */
+/* Theme custom properties                                            */
+/* ------------------------------------------------------------------ */
+
+:root {
+  --color-bg-main: #ffffff;
+  --color-bg-card: #f9fafb;
+  --color-bg-input: #f3f4f6;
+  --color-text-primary: #111827;
+  --color-text-secondary: #6b7280;
+  --color-border: #e5e7eb;
+  --color-accent: #3b82f6;
+  --color-success: #22c55e;
+  --color-pr-gold: #f59e0b;
+  --color-warning: #eab308;
+}
+
+.dark {
+  --color-bg-main: #030712;
+  --color-bg-card: #111827;
+  --color-bg-input: #1f2937;
+  --color-text-primary: #f3f4f6;
+  --color-text-secondary: #9ca3af;
+  --color-border: #1f2937;
+  --color-accent: #3b82f6;
+  --color-success: #22c55e;
+  --color-pr-gold: #f59e0b;
+  --color-warning: #eab308;
+}
+
+/* ------------------------------------------------------------------ */
+/* Base styles                                                        */
+/* ------------------------------------------------------------------ */
+
+html {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    Roboto, 'Helvetica Neue', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background-color: var(--color-bg-main);
+  color: var(--color-text-primary);
+}
+
+#root {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Prevent overscroll bounce on iOS */
+html, body {
+  overscroll-behavior: none;
+}
+
+/* ------------------------------------------------------------------ */
+/* Bottom sheet animation                                             */
+/* ------------------------------------------------------------------ */
+
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.sheet-enter {
+  animation: slide-up 0.3s ease-out;
+}
+
+.backdrop-enter {
+  animation: fade-in 0.2s ease-out;
+}
+
+/* ------------------------------------------------------------------ */
+/* Checkmark success animation                                        */
+/* ------------------------------------------------------------------ */
+
+@keyframes checkmark-pop {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.checkmark-animate {
+  animation: checkmark-pop 0.4s ease-out;
+}
+
+/* ------------------------------------------------------------------ */
+/* Scrollbar styling                                                  */
+/* ------------------------------------------------------------------ */
+
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 2px;
+}
+
+/* Hide scrollbar on touch devices */
+@media (pointer: coarse) {
+  ::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Number input spinners                                              */
+/* ------------------------------------------------------------------ */
+
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type='number'] {
+  -moz-appearance: textfield;
+}
