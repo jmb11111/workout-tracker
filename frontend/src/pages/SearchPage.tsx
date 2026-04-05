@@ -71,7 +71,7 @@ export default function SearchPage() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search movements..."
-          className="h-12 w-full rounded-xl bg-gray-100 pl-10 pr-10 text-sm text-gray-900 outline-none ring-1 ring-transparent focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+          className="h-12 w-full rounded-xl bg-gray-100 pl-10 pr-10 text-base text-gray-900 outline-none ring-1 ring-transparent focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
         />
         {query && (
           <button

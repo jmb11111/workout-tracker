@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { Trophy, Filter } from 'lucide-react';
 import { getRecords, getBenchmarks } from '../api/client';
@@ -22,6 +23,7 @@ export default function RecordsPage() {
   const [movementType, setMovementType] = useState('');
   const [muscleGroup, setMuscleGroup] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const navigate = useNavigate();
 
   const fetchRecords = useCallback(async () => {
     setLoading(true);
@@ -158,7 +160,10 @@ export default function RecordsPage() {
           {records.map((group) => (
             <div
               key={group.movement.id}
-              className="rounded-xl bg-gray-50 p-4 dark:bg-gray-900"
+              onClick={() => navigate(`/movement/${group.movement.id}`)}
+              role="button"
+              tabIndex={0}
+              className="cursor-pointer rounded-xl bg-gray-50 p-4 transition-colors active:bg-gray-100 dark:bg-gray-900 dark:active:bg-gray-800"
             >
               <div className="mb-2 flex items-center gap-2">
                 <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">

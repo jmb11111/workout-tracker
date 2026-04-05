@@ -119,6 +119,7 @@ def _detect_exercise_prs(
                     exercise_result_id=result.id,
                 )
                 db.add(pr)
+            db.flush()
             is_pr = True
 
     return is_pr

@@ -39,7 +39,7 @@ function getToken(): string | null {
   return localStorage.getItem('access_token');
 }
 
-async function apiFetch<T>(
+async function doFetch<T>(
   path: string,
   options: RequestInit = {},
 ): Promise<T> {
@@ -75,6 +75,48 @@ async function apiFetch<T>(
     return null as T;
   }
   return JSON.parse(text) as T;
+}
+
+async function apiFetch<T>(
+  path: string,
+  options: RequestInit = {},
+): Promise<T> {
+  try {
+    return await doFetch<T>(path, options);
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 401) {
+      // Try to refresh the token and retry once
+      const rt = localStorage.getItem('refresh_token');
+      if (rt) {
+        try {
+          const tokens = await doFetch<{ access_token: string; expires_in?: number; refresh_token?: string }>(
+            `/api/auth/refresh?refresh_token=${encodeURIComponent(rt)}`,
+            { method: 'POST' },
+          );
+          localStorage.setItem('access_token', tokens.access_token);
+          if (tokens.refresh_token) {
+            localStorage.setItem('refresh_token', tokens.refresh_token);
+          }
+          if (tokens.expires_in) {
+            localStorage.setItem(
+              'token_expires_at',
+              String(Date.now() + tokens.expires_in * 1000),
+            );
+          }
+          return await doFetch<T>(path, options);
+        } catch {
+          // Refresh failed — clear tokens and redirect to login
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('refresh_token');
+          localStorage.removeItem('token_expires_at');
+          sessionStorage.removeItem('tried_auto_login');
+          window.location.href = '/';
+          throw err;
+        }
+      }
+    }
+    throw err;
+  }
 }
 
 // ---------------------------------------------------------------------------

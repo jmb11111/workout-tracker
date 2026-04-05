@@ -92,6 +92,7 @@ export default function ResultSheet(props: ResultSheetProps) {
   const backdropRef = useRef<HTMLDivElement>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Strength state
   const [sets, setSets] = useState<SetRow[]>([{ reps: '', weight: '' }]);
@@ -202,6 +203,7 @@ export default function ResultSheet(props: ResultSheetProps) {
       }, 800);
     } catch (err) {
       console.error('Failed to save result:', err);
+      setSaveError(err instanceof Error ? err.message : 'Failed to save. Please try again.');
       setSaving(false);
     }
   }, [props, sets, notes, condNotes, onClose]);
@@ -347,7 +349,7 @@ export default function ResultSheet(props: ResultSheetProps) {
                       placeholder={props.weightUnit}
                       value={set.weight}
                       onChange={(e) => updateSet(i, 'weight', e.target.value)}
-                      className="h-11 rounded-lg bg-gray-100 px-3 text-sm text-gray-900 outline-none ring-1 ring-transparent focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                      className="h-11 rounded-lg bg-gray-100 px-3 text-base text-gray-900 outline-none ring-1 ring-transparent focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
                     />
                     <input
                       type="number"
@@ -355,7 +357,7 @@ export default function ResultSheet(props: ResultSheetProps) {
                       placeholder="reps"
                       value={set.reps}
                       onChange={(e) => updateSet(i, 'reps', e.target.value)}
-                      className="h-11 rounded-lg bg-gray-100 px-3 text-sm text-gray-900 outline-none ring-1 ring-transparent focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                      className="h-11 rounded-lg bg-gray-100 px-3 text-base text-gray-900 outline-none ring-1 ring-transparent focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
                     />
                     <button
                       onClick={() => removeSet(i)}
@@ -385,7 +387,7 @@ export default function ResultSheet(props: ResultSheetProps) {
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Any notes..."
                   rows={2}
-                  className="w-full rounded-lg bg-gray-100 px-3 py-2.5 text-sm text-gray-900 outline-none ring-1 ring-transparent focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                  className="w-full rounded-lg bg-gray-100 px-3 py-2.5 text-base text-gray-900 outline-none ring-1 ring-transparent focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
                 />
               </div>
             </>
@@ -401,9 +403,16 @@ export default function ResultSheet(props: ResultSheetProps) {
                 onChange={(e) => setCondNotes(e.target.value)}
                 placeholder="How did it go? Times, rounds, notes..."
                 rows={5}
-                className="w-full rounded-lg bg-gray-100 px-3 py-2.5 text-sm text-gray-900 outline-none ring-1 ring-transparent focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
+                className="w-full rounded-lg bg-gray-100 px-3 py-2.5 text-base text-gray-900 outline-none ring-1 ring-transparent focus:ring-blue-500 dark:bg-gray-800 dark:text-gray-100"
                 autoFocus
               />
+            </div>
+          )}
+
+          {/* Save error */}
+          {saveError && (
+            <div className="mb-3 rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-500">
+              {saveError}
             </div>
           )}
 

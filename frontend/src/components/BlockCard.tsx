@@ -103,9 +103,9 @@ export default function BlockCard({
   return (
     <div className="rounded-xl bg-gray-50 p-4 dark:bg-gray-900">
       {/* Header */}
-      <div className="mb-3 flex items-center gap-2">
+      <div className="mb-3 flex flex-wrap items-center gap-2">
         {block.label && (
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gray-200 text-xs font-bold text-gray-700 dark:bg-gray-700 dark:text-gray-200">
+          <span className="flex h-7 shrink-0 items-center justify-center rounded-lg bg-gray-200 px-2 text-xs font-bold text-gray-700 dark:bg-gray-700 dark:text-gray-200">
             {block.label}
           </span>
         )}

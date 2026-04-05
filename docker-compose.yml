@@ -58,6 +58,7 @@ services:
       timeout: 5s
       retries: 3
     labels:
+      - net.unraid.docker.icon=/mnt/user/appdata/icons/workoutapp.png
       - traefik.enable=true
       # Public HTTPS route
       - traefik.http.routers.workout.rule=Host(`gym.blasbalg.me`)

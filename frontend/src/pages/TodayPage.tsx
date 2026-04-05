@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { format, addDays, subDays } from 'date-fns';
-import { ChevronLeft, ChevronRight, AlertTriangle, ClipboardList } from 'lucide-react';
+import { ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react';
 import { useWorkout } from '../hooks/useWorkout';
 import { useAuth } from '../hooks/useAuth';
 import {
@@ -34,7 +34,6 @@ export default function TodayPage() {
   // ResultSheet state
   const [sheetExercise, setSheetExercise] = useState<Exercise | null>(null);
   const [sheetConditioning, setSheetConditioning] = useState<ConditioningWorkout | null>(null);
-  const [showExerciseList, setShowExerciseList] = useState(false);
 
   // Load user
   useEffect(() => {
@@ -94,14 +93,13 @@ export default function TodayPage() {
     async (result: ExerciseResultCreate) => {
       const currentLog = await ensureLog();
       const results = await saveExerciseResults(currentLog.id, [result]);
-      setLog((prev) =>
-        prev
-          ? {
-              ...prev,
-              exercise_results: [...prev.exercise_results, ...results],
-            }
-          : prev,
-      );
+      setLog((prev) => {
+        if (!prev) return prev;
+        // Upsert: replace existing results for the same exercise, append new ones
+        const updatedIds = new Set(results.map((r) => r.exercise_id));
+        const kept = prev.exercise_results.filter((r) => !updatedIds.has(r.exercise_id));
+        return { ...prev, exercise_results: [...kept, ...results] };
+      });
     },
     [ensureLog],
   );
@@ -110,28 +108,15 @@ export default function TodayPage() {
     async (result: ConditioningResultCreate) => {
       const currentLog = await ensureLog();
       const results = await saveConditioningResults(currentLog.id, [result]);
-      setLog((prev) =>
-        prev
-          ? {
-              ...prev,
-              conditioning_results: [...prev.conditioning_results, ...results],
-            }
-          : prev,
-      );
+      setLog((prev) => {
+        if (!prev) return prev;
+        const updatedIds = new Set(results.map((r) => r.conditioning_workout_id));
+        const kept = prev.conditioning_results.filter((r) => !updatedIds.has(r.conditioning_workout_id));
+        return { ...prev, conditioning_results: [...kept, ...results] };
+      });
     },
     [ensureLog],
   );
-
-  // Collect exercises from NON-conditioning blocks only (conditioning is logged per-block)
-  const allExercises: Exercise[] =
-    currentTrack?.blocks
-      ?.filter((b) => !b.block_type.startsWith('conditioning'))
-      .flatMap((b) => b.exercises) ?? [];
-  // Collect conditioning blocks as whole units
-  const conditioningBlocks = currentTrack?.blocks?.filter(
-    (b) => b.block_type.startsWith('conditioning') && b.conditioning_workouts.length > 0,
-  ) ?? [];
-  // allConditioning used to be referenced but conditioningBlocks replaces it
 
   const weightUnit = user?.weight_unit ?? 'lbs';
 
@@ -255,139 +240,6 @@ export default function TodayPage() {
             </div>
           )}
         </>
-      )}
-
-      {/* Log Results CTA */}
-      {workout && isAuthenticated && !loading && !sheetExercise && !sheetConditioning && (
-        <div
-          className="fixed bottom-20 left-0 right-0 z-40 px-4"
-          style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
-        >
-          <div className="mx-auto max-w-lg">
-            <button
-              onClick={() => setShowExerciseList(true)}
-              className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-blue-500 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition-colors active:bg-blue-600"
-            >
-              <ClipboardList size={18} />
-              Log Results
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Exercise list overlay */}
-      {showExerciseList && (
-        <div
-          className="backdrop-enter fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setShowExerciseList(false);
-          }}
-        >
-          <div
-            className="sheet-enter fixed bottom-0 left-0 right-0 z-[60] max-h-[85dvh] overflow-y-auto rounded-t-2xl bg-white shadow-2xl dark:bg-gray-900"
-            style={{ paddingBottom: 'env(safe-area-inset-bottom, 16px)' }}
-          >
-            <div className="sticky top-0 z-10 flex justify-center bg-white pb-2 pt-3 dark:bg-gray-900">
-              <div className="h-1 w-10 rounded-full bg-gray-300 dark:bg-gray-600" />
-            </div>
-            <div className="px-5 pb-6">
-              <h3 className="mb-4 text-lg font-bold text-gray-900 dark:text-gray-100">
-                Log Results
-              </h3>
-
-              {/* Exercises */}
-              {allExercises.length > 0 && (
-                <div className="space-y-1.5">
-                  {allExercises.map((ex) => {
-                    const isCompleted = log?.exercise_results.some(
-                      (r) => r.exercise_id === ex.id,
-                    );
-                    return (
-                      <button
-                        key={ex.id}
-                        onClick={() => {
-                          setShowExerciseList(false);
-                          setSheetExercise(ex);
-                        }}
-                        className={`flex min-h-[48px] w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors active:bg-gray-100 dark:active:bg-gray-800 ${
-                          isCompleted
-                            ? 'bg-green-500/10'
-                            : 'bg-gray-50 dark:bg-gray-800/50'
-                        }`}
-                      >
-                        <span
-                          className={`text-sm font-medium ${
-                            isCompleted
-                              ? 'text-green-600 dark:text-green-400'
-                              : 'text-gray-900 dark:text-gray-100'
-                          }`}
-                        >
-                          {ex.movement?.name ?? 'Exercise'}
-                        </span>
-                        {isCompleted && (
-                          <span className="text-green-500">
-                            <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
-                              <path d="M3 8.5L6.5 12L13 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* Conditioning blocks */}
-              {conditioningBlocks.length > 0 && (
-                <div className="mt-3 space-y-1.5">
-                  <p className="text-xs font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
-                    Conditioning
-                  </p>
-                  {conditioningBlocks.map((blk) => {
-                    const cw = blk.conditioning_workouts[0];
-                    if (!cw) return null;
-                    const isCompleted = log?.conditioning_results.some(
-                      (r) => r.conditioning_workout_id === cw.id,
-                    );
-                    const label = cw.benchmark_name
-                      ?? `${blk.label ? blk.label + '. ' : ''}${cw.format.toUpperCase()}${cw.duration_minutes ? ` ${cw.duration_minutes}min` : ''}`;
-                    return (
-                      <button
-                        key={cw.id}
-                        onClick={() => {
-                          setShowExerciseList(false);
-                          setSheetConditioning(cw);
-                        }}
-                        className={`flex min-h-[48px] w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors active:bg-gray-100 dark:active:bg-gray-800 ${
-                          isCompleted
-                            ? 'bg-green-500/10'
-                            : 'bg-gray-50 dark:bg-gray-800/50'
-                        }`}
-                      >
-                        <span
-                          className={`text-sm font-medium ${
-                            isCompleted
-                              ? 'text-green-600 dark:text-green-400'
-                              : 'text-gray-900 dark:text-gray-100'
-                          }`}
-                        >
-                          {label}
-                        </span>
-                        {isCompleted && (
-                          <span className="text-green-500">
-                            <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
-                              <path d="M3 8.5L6.5 12L13 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
       )}
 
       {/* ResultSheet for strength */}

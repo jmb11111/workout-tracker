@@ -65,6 +65,22 @@ export function useAuth() {
 
       setState({ isAuthenticated: true, token, loading: false });
     } else {
+      // No token — auto-login if we haven't already tried this session
+      const triedAutoLogin = sessionStorage.getItem('tried_auto_login');
+      if (!triedAutoLogin) {
+        sessionStorage.setItem('tried_auto_login', '1');
+        // Kick off OIDC flow — if user has an Authentik session it'll be seamless
+        import('../api/client').then(({ getLoginUrl }) => {
+          getLoginUrl()
+            .then(({ authorization_url }) => {
+              window.location.href = authorization_url;
+            })
+            .catch(() => {
+              setState({ isAuthenticated: false, token: null, loading: false });
+            });
+        });
+        return;
+      }
       setState({ isAuthenticated: false, token: null, loading: false });
     }
   }, []);
@@ -87,11 +103,23 @@ export function useAuth() {
     }
   }, []);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('token_expires_at');
+    sessionStorage.removeItem('tried_auto_login');
     setState({ isAuthenticated: false, token: null, loading: false });
+    // Redirect to Authentik end_session to kill SSO session too
+    try {
+      const resp = await fetch('/api/auth/logout-url');
+      const data = await resp.json();
+      if (data.logout_url && data.logout_url !== '/') {
+        window.location.href = data.logout_url;
+        return;
+      }
+    } catch {
+      // Fall through to local logout
+    }
     window.location.href = '/';
   }, []);
 
@@ -107,6 +135,8 @@ export function useAuth() {
           String(Date.now() + expiresIn * 1000),
         );
       }
+      // Clear auto-login flag on successful auth
+      sessionStorage.removeItem('tried_auto_login');
       setState({ isAuthenticated: true, token: accessToken, loading: false });
     },
     [],

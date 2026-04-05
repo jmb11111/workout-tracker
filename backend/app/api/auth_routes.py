@@ -181,6 +181,22 @@ async def callback(
     )
 
 
+@router.get("/logout-url")
+async def logout_url():
+    """Return the Authentik end_session URL for full SSO logout."""
+    config = await get_oidc_config()
+    end_session_endpoint = config.get("end_session_endpoint")
+
+    if not end_session_endpoint:
+        return {"logout_url": "/"}
+
+    params = {
+        "post_logout_redirect_uri": settings.OIDC_REDIRECT_URI.rsplit("/", 1)[0] + "/",
+        "client_id": settings.OIDC_CLIENT_ID,
+    }
+    return {"logout_url": f"{end_session_endpoint}?{urlencode(params)}"}
+
+
 @router.post("/refresh", response_model=TokenResponse)
 async def refresh_token(
     refresh_token: str = Query(..., description="Refresh token from previous auth"),
